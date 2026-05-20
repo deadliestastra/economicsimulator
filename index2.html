@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Симулятор Рыночной Экономики в RTS</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 900px; width: 100%; background: #2a2a2a; padding: 25px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        h1 { text-align: center; color: #4caf50; margin-top: 0; }
+        h2 { color: #2196f3; border-bottom: 2px solid #333; padding-bottom: 8px; margin-top: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #333; padding: 15px; border-radius: 8px; text-align: center; border-left: 5px solid #4caf50; }
+        .stat-card.price { border-left-color: #ff9800; }
+        .stat-card.gold { border-left-color: #2196f3; }
+        .stat-value { font-size: 24px; font-weight: bold; margin-top: 5px; }
+        .controls { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; }
+        button { background: #4caf50; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        button:hover { background: #45a049; }
+        button.sell { background: #f44336; }
+        button.sell:hover { background: #da190b; }
+        .log-panel { background: #1e1e1e; padding: 15px; border-radius: 8px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 14px; color: #bbb; margin-bottom: 10px; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #2d2d2d; padding-bottom: 3px; }
+        
+        /* Стили для математического блока */
+        .math-box { background: #222; border: 1px solid #444; border-radius: 8px; padding: 20px; margin-top: 20px; }
+        .formula { font-size: 22px; font-weight: bold; text-align: center; color: #ff9800; background: #111; padding: 15px; border-radius: 6px; margin: 15px 0; font-family: 'Courier New', Courier, monospace; }
+        .math-list { list-style-type: none; padding-left: 0; }
+        .math-list li { margin-bottom: 12px; line-height: 1.5; }
+        .variable { font-size: 18px; font-weight: bold; color: #4caf50; font-family: monospace; background: #333; padding: 2px 6px; border-radius: 4px; }
+        .example-box { background: #2d2d2d; padding: 15px; border-radius: 6px; border-left: 4px solid #2196f3; margin-top: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Рыночная Экономика в RTS</h1>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div>Твои Запасы Дерева</div>
+            <div class="stat-value" id="player-wood">100 ед.</div>
+        </div>
+        <div class="stat-card gold">
+            <div>Твое Золото</div>
+            <div class="stat-value" id="player-gold">500 $</div>
+        </div>
+        <div class="stat-card">
+            <div>Дерева на рынке (Предложение)</div>
+            <div class="stat-value" id="market-supply">50 ед.</div>
+        </div>
+        <div class="stat-card price">
+            <div>Текущая Цена Дерева</div>
+            <div class="stat-value" id="wood-price">10.00 $</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="buyWood()">Купить 10 Дерева</button>
+        <button class="sell" onclick="sellWood()">Продать 10 Дерева</button>
+    </div>
+
+    <div class="log-panel" id="log-panel">
+        <div class="log-entry">[Рынок] Торги открыты. Начальная цена установлена.</div>
+    </div>
+
+    <!-- МАТЕМАТИЧЕСКИЙ БЛОК ДЛЯ ПРОЕКТА -->
+    <div class="math-box">
+        <h2>📊 Математическая модель проекта</h2>
+        <p>В стратегических играх цены подчиняются <b>закону спроса и предложения</b>. В данном симуляторе реализована линейная функция зависимости стоимости от объема товара на рынке:</p>
+        
+        <div class="formula">P = P_max - (k * S)</div>
+        <div class="formula" style="font-size: 16px; color: #aaa; margin-top: -10px;">Защита от нуля: P_final = max(1, P)</div>
+
+        <h3>🔤 Расшифровка переменных:</h3>
+        <ul class="math-list">
+            <li><span class="variable">P</span> (Price) — <b>Текущая расчетная цена</b> за 1 единицу ресурса. Она меняется динамически.</li>
+            <li><span class="variable">P_max</span> (Max Price) — <b>Максимальная цена</b> при полном дефиците товара (в коде равна <span style="color:#ff9800">20</span>). Столько стоит дерево, если на рынке его <span class="variable">S = 0</span>.</li>
+            <li><span class="variable">k</span> (Coefficient) — <b>Коэффициент чувствительности рынка</b> (в коде равен <span style="color:#ff9800">0.15</span>). Показывает, насколько падает цена при добавлении единицы товара.</li>
+            <li><span class="variable">S</span> (Supply) — <b>Текущее предложение</b> товара на рынке (в коде это <code>marketSupply</code>). Независимая переменная, на которую влияет игрок.</li>
+        </ul>
+
+        <h3>🕹️ Примеры расчетов из симулятора:</h3>
+        <div class="example-box">
+            <b>1. Начальное состояние (Предложение S = 50):</b><br>
+            P = 20 - (0.15 * 50) = 20 - 7.5 = <b>12.50 $</b> за единицу.
+        </div>
+        <div class="example-box" style="border-left-color: #f44336;">
+            <b>2. Игрок продает дерево (Предложение растет до S = 60):</b><br>
+            P = 20 - (0.15 * 60) = 20 - 9.0 = <b>11.00 $</b> (Товара стало много — цена упала).
+        </div>
+        <div class="example-box" style="border-left-color: #4caf50;">
+            <b>3. Игрок выкупает дерево (Дефицит, предложение падает до S = 10):</b><br>
+            P = 20 - (0.15 * 10) = 20 - 1.5 = <b>18.50 $</b> (Товар заканчивается — цена взлетела).
+        </div>
+    </div>
+</div>
+
+<script>
+    let playerWood = 100;
+    let playerGold = 1000;
+    let marketSupply = 50; 
+
+    const P_max = 20;      
+    const k = 0.15;        
+    const transactionAmount = 10; 
+
+    function calculatePrice() {
+        let price = P_max - (k * marketSupply);
+        return Math.max(1, price); 
+    }
+
+    function updateUI() {
+        const currentPrice = calculatePrice();
+        document.getElementById('player-wood').innerText = playerWood + " ед.";
+        document.getElementById('player-gold').innerText = playerGold.toFixed(2) + " $";
+        document.getElementById('market-supply').innerText = marketSupply + " ед.";
+        document.getElementById('wood-price').innerText = currentPrice.toFixed(2) + " $";
+    }
+
+    function log(message) {
+        const panel = document.getElementById('log-panel');
+        panel.innerHTML += `<div class="log-entry">${message}</div>`;
+        panel.scrollTop = panel.scrollHeight;
+    }
+
+    function buyWood() {
+        const pricePerUnit = calculatePrice();
+        const totalCost = pricePerUnit * transactionAmount;
+
+        if (marketSupply < transactionAmount) {
+            log("[Ошибка] На рынке нет столько дерева!");
+            return;
+        }
+        if (playerGold < totalCost) {
+            log("[Ошибка] Недостаточно золота!");
+            return;
+        }
+
+        playerGold -= totalCost;
+        playerWood += transactionAmount;
+        marketSupply -= transactionAmount; 
+
+        log(`[Сделка] Куплено ${transactionAmount} дерева за ${totalCost.toFixed(2)} $. Цена выросла.`);
+        updateUI();
+    }
+
+    function sellWood() {
+        if (playerWood < transactionAmount) {
+            log("[Ошибка] У тебя нет дерева на продажу!");
+            return;
+        }
+
+        const pricePerUnit = calculatePrice();
+        const totalProfit = pricePerUnit * transactionAmount;
+
+        playerGold += totalProfit;
+        playerWood -= transactionAmount;
+        marketSupply += transactionAmount; 
+
+        log(`[Сделка] Продано ${transactionAmount} дерева за ${totalProfit.toFixed(2)} $. Цена упала.`);
+        updateUI();
+    }
+
+    updateUI();
+</script>
+
+</body>
+</html>
